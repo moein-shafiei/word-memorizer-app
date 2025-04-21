@@ -1,86 +1,100 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, Button } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { getWordById } from '../services/wordService';
+import LearningProgressTracker from '../components/LearningProgressTracker';
 
 const WordDetailScreen = ({ route, navigation }) => {
-  // This will be replaced with actual data from Firebase later
-  const [word, setWord] = useState({
-    id: '1',
-    word: 'Example',
-    meaning: 'A thing characteristic of its kind or illustrating a general rule.',
-    example: 'This is an example of how the app will display word details.',
-    imageUrl: null,
-    learningProgress: 0
-  });
+  const { wordId } = route.params;
+  const [word, setWord] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // In a real implementation, we would fetch the word data from Firebase
   useEffect(() => {
-    if (route.params?.wordId) {
-      // Fetch word data based on wordId
-      // This will be implemented later with Firebase
+    loadWordDetails();
+  }, [wordId]);
+
+  const loadWordDetails = async () => {
+    try {
+      setLoading(true);
+      const wordData = await getWordById(wordId);
+      setWord(wordData);
+      setError(null);
+    } catch (error) {
+      console.error('Error loading word details:', error);
+      setError('Failed to load word details. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  }, [route.params?.wordId]);
-
-  const handleLearning = () => {
-    // Reset learning progress to 0
-    // This will be implemented later with Firebase
-    alert('Word marked as "Learning"');
   };
 
-  const handleKnown = () => {
-    // Increase learning progress by 1
-    // This will be implemented later with Firebase
-    alert('Word marked as "I Know"');
+  const handleProgressChange = (newProgress) => {
+    // Update local state to reflect the change immediately
+    setWord(prevWord => ({
+      ...prevWord,
+      learningProgress: newProgress
+    }));
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Loading word details...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadWordDetails}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!word) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Word not found</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.retryButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.wordText}>{word.word}</Text>
       
-      <View style={styles.imageContainer}>
-        {word.imageUrl ? (
-          <Image 
-            source={{ uri: word.imageUrl }} 
-            style={styles.image} 
-            resizeMode="contain"
-          />
-        ) : (
-          <View style={styles.placeholderImage}>
-            <Text>Image will be generated</Text>
-          </View>
-        )}
-      </View>
+      {word.imageUrl ? (
+        <Image
+          source={{ uri: word.imageUrl }}
+          style={styles.wordImage}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={styles.placeholderImage}>
+          <Text style={styles.placeholderText}>No image available</Text>
+        </View>
+      )}
       
-      <View style={styles.section}>
+      <View style={styles.detailsContainer}>
         <Text style={styles.sectionTitle}>Meaning</Text>
         <Text style={styles.meaningText}>{word.meaning}</Text>
-      </View>
-      
-      <View style={styles.section}>
+        
         <Text style={styles.sectionTitle}>Example</Text>
         <Text style={styles.exampleText}>{word.example}</Text>
       </View>
       
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Learning Progress</Text>
-        <Text style={styles.progressText}>Level: {word.learningProgress}</Text>
-      </View>
-      
-      <View style={styles.buttonContainer}>
-        <View style={styles.button}>
-          <Button
-            title="Learning"
-            onPress={handleLearning}
-            color="#FF6B6B"
-          />
-        </View>
-        <View style={styles.button}>
-          <Button
-            title="I Know"
-            onPress={handleKnown}
-            color="#4ECDC4"
-          />
-        </View>
-      </View>
+      <LearningProgressTracker
+        wordId={wordId}
+        initialProgress={word.learningProgress || 0}
+        onProgressChange={handleProgressChange}
+      />
     </ScrollView>
   );
 };
@@ -88,22 +102,53 @@ const WordDetailScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#FF3B30',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
   },
   wordText: {
     fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
     marginVertical: 20,
+    paddingHorizontal: 20,
   },
-  imageContainer: {
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  image: {
+  wordImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 10,
+    height: 250,
+    marginBottom: 20,
   },
   placeholderImage: {
     width: '100%',
@@ -111,36 +156,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 10,
+    marginBottom: 20,
   },
-  section: {
-    marginVertical: 15,
+  placeholderText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  detailsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 5,
-    color: '#555',
+    marginBottom: 8,
+    color: '#333',
   },
   meaningText: {
     fontSize: 16,
     lineHeight: 24,
+    marginBottom: 20,
+    color: '#333',
   },
   exampleText: {
     fontSize: 16,
-    fontStyle: 'italic',
     lineHeight: 24,
-  },
-  progressText: {
-    fontSize: 16,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 30,
-  },
-  button: {
-    width: '48%',
+    marginBottom: 20,
+    fontStyle: 'italic',
+    color: '#555',
   },
 });
 

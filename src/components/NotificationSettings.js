@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Button, Switch, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Switch, TextInput, Button, Alert } from 'react-native';
 import { getUserSettings, setUserSettings } from '../services/settingsService';
 import { requestNotificationPermissions, scheduleWordNotifications } from '../services/notificationService';
 
-const SettingsScreen = () => {
-  const [notificationInterval, setNotificationInterval] = useState('60');
+const NotificationSettings = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [nightModeEnabled, setNightModeEnabled] = useState(false);
+  const [notificationInterval, setNotificationInterval] = useState('60');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -25,7 +24,6 @@ const SettingsScreen = () => {
       
       setNotificationsEnabled(settings.notificationsEnabled);
       setNotificationInterval(settings.notificationInterval.toString());
-      setNightModeEnabled(settings.nightMode || false);
     } catch (error) {
       console.error('Error loading settings:', error);
       Alert.alert('Error', 'Failed to load settings');
@@ -34,7 +32,7 @@ const SettingsScreen = () => {
     }
   };
 
-  const saveSettings = async () => {
+  const handleSaveSettings = async () => {
     try {
       setSaving(true);
       
@@ -61,8 +59,7 @@ const SettingsScreen = () => {
       // Save settings
       await setUserSettings(userId, {
         notificationsEnabled,
-        notificationInterval: interval,
-        nightMode: nightModeEnabled
+        notificationInterval: interval
       });
       
       // Schedule notifications if enabled
@@ -81,15 +78,14 @@ const SettingsScreen = () => {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading settings...</Text>
+      <View style={styles.loadingContainer}>
+        <Text>Loading settings...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
       <Text style={styles.title}>Notification Settings</Text>
       
       <View style={styles.settingRow}>
@@ -106,31 +102,24 @@ const SettingsScreen = () => {
         style={styles.input}
         value={notificationInterval}
         onChangeText={setNotificationInterval}
-        keyboardType="numeric"
-        placeholder="60"
+        keyboardType="number-pad"
         editable={!saving && notificationsEnabled}
+        placeholder="Enter interval in minutes (minimum 15)"
       />
-      <Text style={styles.helpText}>
-        Set how often you want to receive word notifications (minimum 15 minutes)
-      </Text>
       
-      <View style={styles.settingRow}>
-        <Text style={styles.settingLabel}>Night Mode</Text>
-        <Switch
-          value={nightModeEnabled}
-          onValueChange={setNightModeEnabled}
-          disabled={saving}
-        />
-      </View>
+      <Text style={styles.helpText}>
+        You will receive word notifications at this interval.
+        Default is 60 minutes (1 hour).
+      </Text>
       
       <View style={styles.buttonContainer}>
         <Button
           title={saving ? "Saving..." : "Save Settings"}
-          onPress={saveSettings}
+          onPress={handleSaveSettings}
           disabled={saving}
         />
       </View>
-    </ScrollView>
+    </View>
   );
 };
 
@@ -138,15 +127,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: '#fff',
   },
   loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#666',
   },
   title: {
     fontSize: 24,
@@ -157,7 +143,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 10,
+    marginBottom: 20,
   },
   settingLabel: {
     fontSize: 16,
@@ -165,52 +151,19 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    padding: 10,
-    marginVertical: 5,
-    width: '100%',
-  },
-  helpText: {
-    color: '#666',
-    fontSize: 12,
-    marginBottom: 20,
-  },
-  buttonContainer: {
-    marginTop: 20,
-  },
-});
-
-export default SettingsScreen;
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  settingLabel: {
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
     fontSize: 16,
-    marginVertical: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    padding: 10,
-    marginVertical: 5,
-    width: '100%',
   },
   helpText: {
     color: '#666',
-    fontSize: 12,
     marginBottom: 20,
   },
   buttonContainer: {
-    marginTop: 20,
+    marginTop: 10,
   },
 });
 
-export default SettingsScreen;
+export default NotificationSettings;
